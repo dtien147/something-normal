@@ -55,7 +55,6 @@ public class WireMockService {
                     .withPostServeAction("log-matcher", (request, response) -> {
                         System.out.println("Received request: " + request.getUrl());
                         if (predicates != null) {
-                            // Path Matching
                             List<Map<String, String>> pathMatches = (List<Map<String, String>>) predicates.get("matches");
                             if (pathMatches != null) {
                                 for (Map<String, String> match : pathMatches) {
@@ -90,10 +89,13 @@ public class WireMockService {
     private String populateDataFromCSV(String responseBody, Map<String, Object> dataConfig) {
         try {
             Map<String, Object> keyConfig = (Map<String, Object>) dataConfig.get("key");
-            String csvPath = (String) ((Map<String, Object>) dataConfig.get("fromDataSource")).get("csv").get("path");
-            String keyColumn = (String) ((Map<String, Object>) dataConfig.get("fromDataSource")).get("csv").get("keyColumn");
-            String delimiter = (String) ((Map<String, Object>) dataConfig.get("fromDataSource")).get("csv").get("delimiter");
-            
+            Map<String, Object> fromDataSource = (Map<String, Object>) dataConfig.get("fromDataSource");
+            Map<String, Object> csvConfig = (Map<String, Object>) fromDataSource.get("csv");
+
+            String csvPath = (String) csvConfig.get("path");
+            String keyColumn = (String) csvConfig.get("keyColumn");
+            String delimiter = (String) csvConfig.get("delimiter");
+
             List<String> lines = Files.readAllLines(Paths.get(new ClassPathResource(csvPath).getURI()));
             Map<String, String> csvData = lines.stream().skip(1) // Skip header row
                     .map(line -> line.split(Pattern.quote(delimiter)))
