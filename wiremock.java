@@ -3,7 +3,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.matching.MatchResult;
+import com.github.tomakehurst.wiremock.http.Request;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -51,27 +51,18 @@ public class WireMockService {
                     .willReturn(WireMock.aResponse()
                             .withStatus(status)
                             .withHeader("Content-Type", "application/json")
-                            .withBody(loadResponseTemplate(responseTemplate, dataConfig)))
-                    .withPostServeAction("log-matcher", (request, response) -> {
-                        System.out.println("Received request: " + request.getUrl());
-                        if (predicates != null) {
-                            List<Map<String, String>> pathMatches = (List<Map<String, String>>) predicates.get("matches");
-                            if (pathMatches != null) {
-                                for (Map<String, String> match : pathMatches) {
-                                    String pathRegex = match.get("path");
-                                    if (!Pattern.compile(pathRegex).matcher(request.getUrl()).matches()) {
-                                        System.out.println("No match found for request: " + request.getUrl());
-                                        return MatchResult.noMatch();
-                                    }
-                                }
-                            }
-                        }
-                        System.out.println("Matched request: " + request.getUrl());
-                        return MatchResult.exactMatch();
-                    })
-            );
+                            .withBody(loadResponseTemplate(responseTemplate, dataConfig))));
         }
+
+        wireMockServer.addMockServiceRequestListener((request, response) -> {
+            logRequest(request);
+        });
         return wireMockServer;
+    }
+
+    private void logRequest(Request request) {
+        String requestUrl = request.getAbsoluteUrl();
+        System.out.println("Received request: " + requestUrl);
     }
 
     private String loadResponseTemplate(String responseTemplate, Map<String, Object> dataConfig) {
