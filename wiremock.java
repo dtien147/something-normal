@@ -3,6 +3,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.matching.MatchResult;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -51,7 +52,7 @@ public class WireMockService {
                             .withStatus(status)
                             .withHeader("Content-Type", "application/json")
                             .withBody(loadResponseTemplate(responseTemplate, dataConfig)))
-                    .andMatching(request -> {
+                    .withPostServeAction("log-matcher", (request, response) -> {
                         System.out.println("Received request: " + request.getUrl());
                         if (predicates != null) {
                             // Path Matching
@@ -61,13 +62,13 @@ public class WireMockService {
                                     String pathRegex = match.get("path");
                                     if (!Pattern.compile(pathRegex).matcher(request.getUrl()).matches()) {
                                         System.out.println("No match found for request: " + request.getUrl());
-                                        return WireMock.matchResponse(404);
+                                        return MatchResult.noMatch();
                                     }
                                 }
                             }
                         }
                         System.out.println("Matched request: " + request.getUrl());
-                        return WireMock.matchResponse(200);
+                        return MatchResult.exactMatch();
                     })
             );
         }
@@ -109,4 +110,3 @@ public class WireMockService {
         return responseBody;
     }
 }
-
